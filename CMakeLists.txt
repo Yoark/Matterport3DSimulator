@@ -1,6 +1,13 @@
+
+# use vcpkg cmake configs
+set(CMAKE_TOOLCHAIN_FILE "./vcpkg/scripts/buildsystems/vcpkg.cmake")
 project(Matterport_Simulator CXX)
 cmake_minimum_required(VERSION 2.8)
 
+# to find bugs in find
+set(CMAKE_FIND_DEBUG_MODE ON)
+# need to find opencv ,glm and jsoncpp
+set(CMAKE_PREFIX_PATH "./vcpkg/installed/x64-linux")
 option(OSMESA_RENDERING "Offscreen CPU rendering with OSMesa" OFF)
 option(EGL_RENDERING "Offscreen GPU rendering with EGL" OFF)
 
@@ -14,7 +21,18 @@ endif()
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
-find_package(OpenCV REQUIRED)
+# -------------------------------
+# OpenCV: find in vcpkg if exists
+# -------------------------------
+find_package(OpenCV CONFIG REQUIRED)
+if (OpenCV_FOUND)
+  message("OpenCV found at ${OpenCV_DIR}")
+  message("OpenCV_LIBS found at ${OpenCV_LIBS}")
+  message("OpenCV_INCLUDE_DIRS found at ${OpenCV_INCLUDE_DIRS}")
+  include_directories( ${OpenCV_INCLUDE_DIRS} )
+else()
+  message(SEND_ERROR "OpenCV not found.")
+endif()
 find_package(PkgConfig REQUIRED)
 find_package(OpenMP)
 if (OPENMP_CXX_FOUND)
@@ -22,13 +40,24 @@ if (OPENMP_CXX_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+find_package(jsoncpp CONFIG REQUIRED)
 
 if(EGL_RENDERING)
   add_definitions(-DEGL_RENDERING)
   find_package(OpenGL REQUIRED COMPONENTS OpenGL EGL)
-  pkg_check_modules(EPOXY REQUIRED epoxy)
+  # try to find libepoxy
+  find_library(LIBEPOXY_LIBRARY NAMES epoxy libepoxy)
+  if(NOT LIBEPOXY_LIBRARY)
+      message(FATAL_ERROR "libepoxy not found")
+  endif()
+  
+  find_path(LIBEPOXY_INCLUDE_DIR NAMES epoxy/gl.h)
+  if(NOT LIBEPOXY_INCLUDE_DIR)
+      message(FATAL_ERROR "libepoxy include directory not found")
+  endif()
+  # pkg_check_modules(EPOXY REQUIRED epoxy)
   set(GL_LIBS OpenGL::OpenGL OpenGL::EGL ${EPOXY_LIBRARIES})
+# current build do
 elseif(OSMESA_RENDERING)
   add_definitions(-DOSMESA_RENDERING)
   pkg_check_modules(OSMESA REQUIRED osmesa)
@@ -54,7 +83,7 @@ target_link_libraries(tests MatterSim ${JSONCPP_LIBRARIES} ${OpenCV_LIBS})
 add_executable(mattersim_main src/driver/mattersim_main.cpp)
 target_link_libraries(mattersim_main MatterSim)
 
-add_subdirectory(pybind11)
+# add_subdirectory(pybind11)
 
 find_package(PythonInterp 3)
 message(${PYTHON_EXECUTABLE})
@@ -68,7 +97,8 @@ find_program(PYTHON_EXECUTABLE python
       )
 
 find_package(NumPy REQUIRED)
-
+# find this, installed with conda
+find_package(pybind11 REQUIRED)
 pybind11_add_module(MatterSimPython src/lib_python/MatterSimPython.cpp)
 target_include_directories(MatterSimPython PRIVATE ${NUMPY_INCLUDES})
 target_link_libraries(MatterSimPython PRIVATE MatterSim)
