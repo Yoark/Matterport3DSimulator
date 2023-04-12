@@ -8,6 +8,7 @@
  *  Distributed under the Boost Software License, Version 1.0. (See accompanying
  *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
+#include <vector>
 #ifndef TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
 #define TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
 // start catch.hpp
@@ -6462,7 +6463,8 @@ namespace Catch {
         static bool isSet;
         static struct sigaction oldSigActions[];// [sizeof(signalDefs) / sizeof(SignalDefs)];
         static stack_t oldSigStack;
-        static char altStackMem[];
+        // static char altStackMem[]; 
+        static std::vector<char> altStackMem;
 
         static void handleSignal( int sig );
 
@@ -6596,7 +6598,7 @@ namespace Catch {
     FatalConditionHandler::FatalConditionHandler() {
         isSet = true;
         stack_t sigStack;
-        sigStack.ss_sp = altStackMem;
+        sigStack.ss_sp = altStackMem.data();
         sigStack.ss_size = SIGSTKSZ;
         sigStack.ss_flags = 0;
         sigaltstack(&sigStack, &oldSigStack);
@@ -6628,7 +6630,11 @@ namespace Catch {
     bool FatalConditionHandler::isSet = false;
     struct sigaction FatalConditionHandler::oldSigActions[sizeof(signalDefs)/sizeof(SignalDefs)] = {};
     stack_t FatalConditionHandler::oldSigStack = {};
-    char FatalConditionHandler::altStackMem[SIGSTKSZ] = {};
+    // char FatalConditionHandler::altStackMem[SIGSTKSZ] = {};
+    std::vector<char> FatalConditionHandler::altStackMem(SIGSTKSZ,0);
+    // constexpr std::size_t kAltStackSize = static_cast<std::size_t>(SIGSTKSZ);
+    // alignas(16) char FatalConditionHandler::altStackMem[kAltStackSize] = {};
+
 
 } // namespace Catch
 

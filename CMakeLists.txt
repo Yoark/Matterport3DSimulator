@@ -40,7 +40,6 @@ if (OPENMP_CXX_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-find_package(jsoncpp CONFIG REQUIRED)
 
 if(EGL_RENDERING)
   add_definitions(-DEGL_RENDERING)
@@ -73,12 +72,17 @@ add_library(MatterSim SHARED src/lib/MatterSim.cpp src/lib/NavGraph.cpp src/lib/
 if(OSMESA_RENDERING)
   target_compile_definitions(MatterSim PUBLIC "-DOSMESA_RENDERING")
 endif()
-target_include_directories(MatterSim PRIVATE ${JSONCPP_INCLUDE_DIRS})
-target_link_libraries(MatterSim ${JSONCPP_LIBRARIES} ${OpenCV_LIBS} ${GL_LIBS})
+
+# find jsoncp
+find_package(jsoncpp CONFIG REQUIRED)
+# target_include_directories(MatterSim PRIVATE ${jsoncpp_INCLUDE_DIRS})
+# target_link_libraries(MatterSim ${jsoncpp_LIBRARIES} ${OpenCV_LIBS} ${GL_LIBS})
+target_link_libraries(MatterSim JsonCpp::JsonCpp ${OpenCV_LIBS} ${GL_LIBS})
 
 add_executable(tests src/test/main.cpp)
-target_include_directories(tests PRIVATE ${JSONCPP_INCLUDE_DIRS})
-target_link_libraries(tests MatterSim ${JSONCPP_LIBRARIES} ${OpenCV_LIBS})
+# target_include_directories(tests PRIVATE ${jsoncpp_INCLUDE_DIRS})
+# target_link_libraries(tests MatterSim ${jsoncpp_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(tests MatterSim JsonCpp::JsonCpp ${OpenCV_LIBS})
 
 add_executable(mattersim_main src/driver/mattersim_main.cpp)
 target_link_libraries(mattersim_main MatterSim)

@@ -17,7 +17,7 @@
 #include <epoxy/gl.h>
 #include <EGL/egl.h>
 #else
-#include <GL/glew.h>
+// #include <GL/glew.h>
 #endif
 
 #define GLM_FORCE_RADIANS
